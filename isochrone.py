@@ -14,7 +14,7 @@ from models import Place
 # ORS Isochrone API settings
 # Set your API key as an environment variable:  ORS_API_KEY=your_key_here
 # --------------------------------------------------------------------------
-ORS_API_URL = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjY5ZGFlM2E0ZWJjZDQ5OWViNzBiMTIyODJjOGU3YzI3IiwiaCI6Im11cm11cjY0In0="
+ORS_API_URL = "https://api.openrouteservice.org/v2/isochrones/driving-car"
 ORS_API_KEY = os.getenv("ORS_API_KEY", "")  # reads from environment, empty = mock mode
 
 

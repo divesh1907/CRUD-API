@@ -1,6 +1,3 @@
-# main.py
-# Entry point for the FastAPI application.
-# Run with:  uvicorn main:app --reload
 
 from fastapi import FastAPI, HTTPException, Query
 
@@ -9,9 +6,8 @@ import database
 from isochrone import get_places_within_isochrone
 from models import Place, PlaceCreate, PlaceUpdate
 
-# --------------------------------------------------------------------------
 # Create the FastAPI app
-# --------------------------------------------------------------------------
+
 app = FastAPI(
     title="Places API with Isochrone Filtering",
     description=(
@@ -21,10 +17,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
-
-# --------------------------------------------------------------------------
 # Root — health check
-# --------------------------------------------------------------------------
+
 
 @app.get("/", tags=["Health"])
 def root():
@@ -32,9 +26,7 @@ def root():
     return {"message": "Places API is running! Visit /docs for the interactive UI."}
 
 
-# --------------------------------------------------------------------------
 # CRUD — Create
-# --------------------------------------------------------------------------
 
 @app.post("/places", response_model=Place, status_code=201, tags=["Places"])
 def add_place(data: PlaceCreate):
@@ -50,22 +42,14 @@ def add_place(data: PlaceCreate):
     return new_place
 
 
-# --------------------------------------------------------------------------
 # CRUD — Read All
-# --------------------------------------------------------------------------
 
 @app.get("/places", response_model=list[Place], tags=["Places"])
 def list_places():
     """Return all places stored in the database."""
     return crud.get_all_places()
 
-
-# --------------------------------------------------------------------------
 # CRUD — Read One
-# NOTE: This route must come BEFORE /places/isochrone or FastAPI will try
-#       to match "isochrone" as an integer ID and fail.
-#       We solve this by declaring /places/isochrone first (see below).
-# --------------------------------------------------------------------------
 
 @app.get("/places/{place_id}", response_model=Place, tags=["Places"])
 def get_place(place_id: int):
@@ -75,10 +59,7 @@ def get_place(place_id: int):
         raise HTTPException(status_code=404, detail=f"Place with id={place_id} not found.")
     return place
 
-
-# --------------------------------------------------------------------------
 # CRUD — Update
-# --------------------------------------------------------------------------
 
 @app.put("/places/{place_id}", response_model=Place, tags=["Places"])
 def update_place(place_id: int, data: PlaceUpdate):
@@ -91,10 +72,7 @@ def update_place(place_id: int, data: PlaceUpdate):
         raise HTTPException(status_code=404, detail=f"Place with id={place_id} not found.")
     return updated
 
-
-# --------------------------------------------------------------------------
 # CRUD — Delete
-# --------------------------------------------------------------------------
 
 @app.delete("/places/{place_id}", tags=["Places"])
 def delete_place(place_id: int):
@@ -104,10 +82,7 @@ def delete_place(place_id: int):
         raise HTTPException(status_code=404, detail=f"Place with id={place_id} not found.")
     return {"message": f"Place {place_id} deleted successfully."}
 
-
-# --------------------------------------------------------------------------
 # Isochrone — Filter places by travel-time radius
-# --------------------------------------------------------------------------
 
 @app.get("/places/isochrone/filter", response_model=list[Place], tags=["Isochrone"])
 def places_in_isochrone(
@@ -115,17 +90,8 @@ def places_in_isochrone(
     lon: float = Query(..., description="Longitude of the origin point", example=78.4483),
     range: int = Query(..., description="Travel-time radius in minutes", example=10, ge=1, le=60),
 ):
-    """
-    Return all places reachable within `range` minutes of driving from (lat, lon).
-
-    Steps:
-    1. Calls the ORS Isochrone API to get a polygon of the reachable area.
-    2. Checks each place in the database to see if it falls inside the polygon.
-    3. Returns only the matching places.
-
-    **Tip:** Set the `ORS_API_KEY` environment variable to use real routing.
-    Without it, a mock square polygon (~2 km) is used instead.
-    """
+    """ Return all places reachable within `range` minutes of driving from (lat, lon) """
+    
     all_places = database.places_db
     matching = get_places_within_isochrone(lat, lon, range, all_places)
     return matching

@@ -1,95 +1,76 @@
-# isochrone.py
-# Handles two things:
-#   1. Calling the OpenRouteService (ORS) Isochrone API to get a travel polygon
-#   2. Using Shapely to check which places fall inside that polygon
-
 import os
 import requests
+from dotenv import load_dotenv
 from shapely.geometry import shape, Point
 
 from models import Place
 
+load_dotenv()
+
+MAPBOX_API_KEY = os.getenv("MAPBOX_API_KEY", "")
 
 # --------------------------------------------------------------------------
-# ORS Isochrone API settings
-# Set your API key as an environment variable:  ORS_API_KEY=your_key_here
-# --------------------------------------------------------------------------
-ORS_API_URL = "https://api.openrouteservice.org/v2/isochrones/driving-car"
-ORS_API_KEY = os.getenv("ORS_API_KEY", "")  # reads from environment, empty = mock mode
-
-
-# --------------------------------------------------------------------------
-# Step 1: Get the isochrone polygon from ORS (or fall back to a mock)
+# Step 1: Fetch isochrone polygon from Mapbox
 # --------------------------------------------------------------------------
 
 def fetch_isochrone_polygon(lat: float, lon: float, range_minutes: int) -> dict:
     """
-    Calls ORS API to get a GeoJSON polygon representing the area reachable
-    within `range_minutes` minutes of driving from (lat, lon).
-
-    If no API key is set, returns a mock square polygon for testing.
+    Calls Mapbox Isochrone API and returns polygon GeoJSON.
     """
 
-    if not ORS_API_KEY:
-        # ---- MOCK MODE ----
-        # Return a simple square bounding box (~2 km around the point).
-        # Good enough for local testing without an API key.
-        print("⚠️  No ORS_API_KEY found — using mock polygon (square ~2 km around point).")
-        delta = 0.02  # roughly 2 km
-        mock_polygon = {
-            "type": "Polygon",
-            "coordinates": [[
-                [lon - delta, lat - delta],
-                [lon + delta, lat - delta],
-                [lon + delta, lat + delta],
-                [lon - delta, lat + delta],
-                [lon - delta, lat - delta],  # close the ring
-            ]]
+    if not MAPBOX_API_KEY:
+        print("⚠️ No MAPBOX_API_KEY found — using mock polygon")
+        return mock_polygon(lat, lon)
+
+    try:
+        # Mapbox expects minutes directly
+        url = f"https://api.mapbox.com/isochrone/v1/mapbox/driving/{lon},{lat}"
+
+        params = {
+            "contours_minutes": range_minutes,
+            "polygons": "true",
+            "access_token": MAPBOX_API_KEY,
         }
-        return mock_polygon
 
-    # ---- REAL ORS CALL ----
-    headers = {
-        "Authorization": ORS_API_KEY,
-        "Content-Type": "application/json",
-    }
-    body = {
-        "locations": [[lon, lat]],          # ORS expects [longitude, latitude]
-        "range": [range_minutes * 60],       # ORS uses seconds, not minutes
-        "range_type": "time",
-    }
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
 
-    response = requests.post(ORS_API_URL, json=body, headers=headers, timeout=10)
-    response.raise_for_status()             # raises exception for HTTP errors
+        data = response.json()
+        return data["features"][0]["geometry"]
 
-    geojson = response.json()
-
-    # ORS returns a FeatureCollection; we want the first feature's geometry
-    polygon_geometry = geojson["features"][0]["geometry"]
-    return polygon_geometry
+    except Exception as e:
+        print(f"❌ Mapbox error: {e}")
+        print("⚠️ Falling back to mock polygon")
+        return mock_polygon(lat, lon)
 
 
 # --------------------------------------------------------------------------
-# Step 2: Filter places that lie inside the polygon
+# Mock fallback (still useful)
+# --------------------------------------------------------------------------
+
+def mock_polygon(lat, lon):
+    delta = 0.02
+    return {
+        "type": "Polygon",
+        "coordinates": [[
+            [lon - delta, lat - delta],
+            [lon + delta, lat - delta],
+            [lon + delta, lat + delta],
+            [lon - delta, lat + delta],
+            [lon - delta, lat - delta],
+        ]]
+    }
+
+
+# --------------------------------------------------------------------------
+# Step 2: Filter places inside polygon
 # --------------------------------------------------------------------------
 
 def filter_places_in_polygon(places: list[Place], polygon_geojson: dict) -> list[Place]:
-    """
-    Given a list of places and a GeoJSON polygon, returns only the places
-    whose coordinates fall inside the polygon.
-
-    Uses Shapely:
-      - `shape()` converts GeoJSON dict → Shapely geometry object
-      - `Point()` represents a single lat/lon coordinate
-      - `.contains()` checks if the polygon includes the point
-    """
-
-    # Convert GeoJSON polygon dict → Shapely shape object
     polygon = shape(polygon_geojson)
 
     inside = []
     for place in places:
-        # Create a Shapely Point — note: (longitude, latitude) order for geo
         point = Point(place.longitude, place.latitude)
 
         if polygon.contains(point):
@@ -99,7 +80,7 @@ def filter_places_in_polygon(places: list[Place], polygon_geojson: dict) -> list
 
 
 # --------------------------------------------------------------------------
-# Convenience wrapper used by the API endpoint
+# Main wrapper
 # --------------------------------------------------------------------------
 
 def get_places_within_isochrone(
@@ -108,11 +89,6 @@ def get_places_within_isochrone(
     range_minutes: int,
     all_places: list[Place],
 ) -> list[Place]:
-    """
-    Full pipeline:
-      1. Fetch isochrone polygon from ORS (or mock)
-      2. Filter places inside that polygon
-      3. Return matching places
-    """
+
     polygon = fetch_isochrone_polygon(lat, lon, range_minutes)
     return filter_places_in_polygon(all_places, polygon)

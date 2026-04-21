@@ -1,96 +1,122 @@
 from fastapi import FastAPI, HTTPException, Query
+from typing import List
 
-import crud
-import database
+from models import Place
+from database import places_db, next_id
 from isochrone import get_places_within_isochrone
-from models import Place, PlaceCreate, PlaceUpdate
 
-# Create the FastAPI app
-
-app = FastAPI(
-    title="Places API with Isochrone Filtering",
-    description=(
-        "A beginner-friendly REST API to manage places (cafes, hospitals, etc.) "
-        "and filter them by travel-time radius using isochrone polygons."
-    ),
-    version="1.0.0",
-)
-
-# Root — health check
+app = FastAPI(title="Places API with Isochrone Filtering")
 
 
-@app.get("/", tags=["Health"])
+# --------------------------------------------------------------------------
+# ROOT
+# --------------------------------------------------------------------------
+
+@app.get("/")
 def root():
-    """Simple health-check endpoint."""
-    return {"message": "Places API is running! Visit /docs for the interactive UI."}
+    return {"message": "Welcome to Places API 🚀"}
 
 
-# CRUD — Create
+# --------------------------------------------------------------------------
+# GET ALL PLACES
+# --------------------------------------------------------------------------
 
-@app.post("/places", response_model=Place, status_code=201, tags=["Places"])
-def add_place(data: PlaceCreate):
-    """
-    Add a new place.
+@app.get("/places", response_model=List[Place])
+def get_places():
+    return places_db
 
-    Send a JSON body with:
-    - name (string)
-    - latitude (float)
-    - longitude (float)
-    """
-    new_place = crud.create_place(data)
+
+# --------------------------------------------------------------------------
+# GET PLACE BY ID
+# --------------------------------------------------------------------------
+
+@app.get("/places/{place_id}", response_model=Place)
+def get_place(place_id: int):
+    for place in places_db:
+        if place.id == place_id:
+            return place
+    raise HTTPException(status_code=404, detail="Place not found")
+
+
+# --------------------------------------------------------------------------
+# CREATE PLACE
+# --------------------------------------------------------------------------
+
+@app.post("/places", response_model=Place)
+def create_place(place: Place):
+    global next_id
+
+    new_place = Place(
+        id=next_id,
+        name=place.name,
+        latitude=place.latitude,
+        longitude=place.longitude,
+    )
+
+    places_db.append(new_place)
+    next_id += 1
+
     return new_place
 
 
-# CRUD — Read All
+# --------------------------------------------------------------------------
+# UPDATE PLACE
+# --------------------------------------------------------------------------
 
-@app.get("/places", response_model=list[Place], tags=["Places"])
-def list_places():
-    """Return all places stored in the database."""
-    return crud.get_all_places()
+@app.put("/places/{place_id}", response_model=Place)
+def update_place(place_id: int, updated_place: Place):
+    for index, place in enumerate(places_db):
+        if place.id == place_id:
+            updated_place.id = place_id
+            places_db[index] = updated_place
+            return updated_place
 
-# CRUD — Read One
+    raise HTTPException(status_code=404, detail="Place not found")
 
-@app.get("/places/{place_id}", response_model=Place, tags=["Places"])
-def get_place(place_id: int):
-    """Return a single place by ID. Raises 404 if not found."""
-    place = crud.get_place_by_id(place_id)
-    if not place:
-        raise HTTPException(status_code=404, detail=f"Place with id={place_id} not found.")
-    return place
 
-# CRUD — Update
+# --------------------------------------------------------------------------
+# DELETE PLACE
+# --------------------------------------------------------------------------
 
-@app.put("/places/{place_id}", response_model=Place, tags=["Places"])
-def update_place(place_id: int, data: PlaceUpdate):
-    """
-    Update one or more fields of an existing place.
-    Only the fields you send will be updated.
-    """
-    updated = crud.update_place(place_id, data)
-    if not updated:
-        raise HTTPException(status_code=404, detail=f"Place with id={place_id} not found.")
-    return updated
-
-# CRUD — Delete
-
-@app.delete("/places/{place_id}", tags=["Places"])
+@app.delete("/places/{place_id}")
 def delete_place(place_id: int):
-    """Delete a place by ID. Returns a confirmation message."""
-    success = crud.delete_place(place_id)
-    if not success:
-        raise HTTPException(status_code=404, detail=f"Place with id={place_id} not found.")
-    return {"message": f"Place {place_id} deleted successfully."}
+    for index, place in enumerate(places_db):
+        if place.id == place_id:
+            places_db.pop(index)
+            return {"message": "Place deleted successfully"}
 
-# Isochrone — Filter places by travel-time radius
+    raise HTTPException(status_code=404, detail="Place not found")
 
-@app.get("/places/isochrone/filter", response_model=list[Place], tags=["Isochrone"])
-def places_in_isochrone(
-    lat: float = Query(..., description="Latitude of the origin point", example=17.4126),
-    lon: float = Query(..., description="Longitude of the origin point", example=78.4483),
-    range: int = Query(..., description="Travel-time radius in minutes", example=10, ge=1, le=60),
+
+# --------------------------------------------------------------------------
+# ISOCHRONE FILTER (MAIN FEATURE)
+# --------------------------------------------------------------------------
+
+@app.get("/places/isochrone/filter", response_model=List[Place])
+def filter_places_by_isochrone(
+    lat: float,
+    lon: float,
+    range: int = Query(..., ge=1, le=60)
 ):
-    """ Return all places reachable within `range` minutes of driving from (lat, lon) """
-    
-    all_places = database.places_db
-    matching = get_places_within_isochrone(lat, lon, range, all_places)
-    return matching
+    """
+    Returns places reachable within X minutes from given location.
+    """
+
+    return get_places_within_isochrone(
+        lat=lat,
+        lon=lon,
+        range_minutes=range,
+        all_places=places_db
+    )
+
+
+# --------------------------------------------------------------------------
+# OPTIONAL: SEARCH BY NAME
+# --------------------------------------------------------------------------
+
+@app.get("/places/search", response_model=List[Place])
+def search_places(q: str):
+    return [
+        place for place in places_db
+        if q.lower() in place.name.lower()
+    ]

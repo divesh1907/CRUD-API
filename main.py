@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException, Query
 
 import crud

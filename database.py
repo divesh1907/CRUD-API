@@ -1,24 +1,40 @@
-# database.py
-# This acts as our "database" — just a Python list stored in memory.
-# All data is lost when the server restarts (no real DB needed for this project).
-
 from models import Place
-
-# --------------------------------------------------------------------------
-# Sample places in Hyderabad, India (realistic coordinates)
-# --------------------------------------------------------------------------
 places_db: list[Place] = [
-    Place(id=1,  name="Cafe Coffee Day - Banjara Hills",  latitude=17.4126, longitude=78.4483),
-    Place(id=2,  name="Apollo Hospital - Jubilee Hills",   latitude=17.4239, longitude=78.4738),
-    Place(id=3,  name="Kendriya Vidyalaya - Begumpet",     latitude=17.4432, longitude=78.4671),
-    Place(id=4,  name="GVK One Mall - Banjara Hills",      latitude=17.4200, longitude=78.4482),
+    Place(id=1,  name="Cafe Coffee Day - Banjara Hills",    latitude=17.4126, longitude=78.4483),
+    Place(id=2,  name="Apollo Hospital - Jubilee Hills",    latitude=17.4239, longitude=78.4738),
+    Place(id=3,  name="Kendriya Vidyalaya - Begumpet",      latitude=17.4432, longitude=78.4671),
+    Place(id=4,  name="GVK One Mall - Banjara Hills",       latitude=17.4200, longitude=78.4482),
     Place(id=5,  name="Charminar",                          latitude=17.3616, longitude=78.4747),
-    Place(id=6,  name="IKEA Hyderabad - HITEC City",       latitude=17.4435, longitude=78.3772),
+    Place(id=6,  name="IKEA Hyderabad - HITEC City",        latitude=17.4435, longitude=78.3772),
     Place(id=7,  name="Hussain Sagar Lake",                 latitude=17.4239, longitude=78.4738),
     Place(id=8,  name="Birla Mandir",                       latitude=17.4062, longitude=78.4691),
     Place(id=9,  name="Golconda Fort",                      latitude=17.3833, longitude=78.4011),
     Place(id=10, name="Inorbit Mall - HITEC City",          latitude=17.4344, longitude=78.3815),
+    Place(id=11, name="Lumbini Park",                       latitude=17.4123, longitude=78.4730),
+    Place(id=12, name="Necklace Road",                      latitude=17.4230, longitude=78.4710),
+    Place(id=13, name="Shilparamam",                        latitude=17.4526, longitude=78.3783),
+    Place(id=14, name="Durgam Cheruvu",                     latitude=17.4447, longitude=78.3908),
+    Place(id=15, name="Mindspace IT Park",                  latitude=17.4474, longitude=78.3915),
+    Place(id=16, name="Cyber Towers",                       latitude=17.4435, longitude=78.3772),
+    Place(id=17, name="Forum Sujana Mall",                  latitude=17.4716, longitude=78.3885),
+    Place(id=18, name="Sarath City Capital Mall",           latitude=17.4575, longitude=78.3630),
+    Place(id=19, name="KBR National Park",                  latitude=17.4194, longitude=78.4345),
+    Place(id=20, name="Yashoda Hospital - Somajiguda",      latitude=17.4220, longitude=78.4625),
+    Place(id=21, name="Care Hospital - Banjara Hills",      latitude=17.4128, longitude=78.4500),
+    Place(id=22, name="Ameerpet Metro Station",             latitude=17.4375, longitude=78.4483),
+    Place(id=23, name="Secunderabad Railway Station",       latitude=17.4399, longitude=78.4983),
+    Place(id=24, name="Begumpet Airport",                   latitude=17.4531, longitude=78.4676),
+    Place(id=25, name="Osmania University",                 latitude=17.4065, longitude=78.5283),
+    Place(id=26, name="JNTU Hyderabad",                     latitude=17.4933, longitude=78.3915),
+    Place(id=27, name="Gachibowli Stadium",                 latitude=17.4470, longitude=78.3489),
+    Place(id=28, name="Financial District",                 latitude=17.4116, longitude=78.3446),
+    Place(id=29, name="T-Hub",                              latitude=17.4448, longitude=78.3498),
+    Place(id=30, name="Raidurg Metro Station",              latitude=17.4430, longitude=78.3775),
+    Place(id=31, name="LB Nagar",                           latitude=17.3457, longitude=78.5520),
+    Place(id=32, name="Miyapur Metro Station",              latitude=17.4967, longitude=78.3560),
+    Place(id=33, name="Kukatpally Housing Board",           latitude=17.4948, longitude=78.3996),
+    Place(id=34, name="Nampally Railway Station",           latitude=17.3925, longitude=78.4676),
+    Place(id=35, name="Salar Jung Museum",                  latitude=17.3713, longitude=78.4804),
 ]
-
 # Counter to generate unique IDs for new places
-next_id: int = 11
+next_id: int = 36
